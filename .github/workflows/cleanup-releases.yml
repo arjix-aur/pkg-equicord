@@ -19,7 +19,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const daysToKeep = 25;
+            const daysToKeep = 15;
             const msToKeep = daysToKeep * 24 * 60 * 60 * 1000;
             const now = new Date();
             const thresholdDate = new Date(now.getTime() - msToKeep);
