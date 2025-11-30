@@ -1,0 +1,77 @@
+name: Cleanup Old Releases
+
+on:
+  # Run at 00:00 on every 10th day of the month (1st, 11th, 21st, 31st)
+  schedule:
+    - cron: '0 0 */10 * *'
+  # Allows you to run this workflow manually from the Actions tab for testing
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  delete-old-releases:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete releases older than 25 days
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const daysToKeep = 25;
+            const msToKeep = daysToKeep * 24 * 60 * 60 * 1000;
+            const now = new Date();
+            const thresholdDate = new Date(now.getTime() - msToKeep);
+
+            console.log(`Current Date: ${now.toISOString()}`);
+            console.log(`Threshold Date: ${thresholdDate.toISOString()}`);
+            console.log('Fetching releases...');
+
+            // Fetch the last 100 releases
+            const releases = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+
+            console.log(`Found ${releases.data.length} releases to check.`);
+
+            for (const release of releases.data) {
+              const releaseDate = new Date(release.created_at);
+              const releaseName = release.name || release.tag_name;
+
+              if (releaseDate < thresholdDate) {
+                console.log(`Deleting release: "${releaseName}" (Created: ${release.created_at})`);
+
+                try {
+                  // 1. Delete the Release (removes the page and assets)
+                  await github.rest.repos.deleteRelease({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    release_id: release.id
+                  });
+                  console.log(`Successfully deleted release object for "${releaseName}"`);
+
+                  // OPTIONAL: Delete the Tag associated with the release.
+                  // Uncomment the block below if you also want to remove the git tag (version reference).
+                  /*
+                  try {
+                    await github.rest.git.deleteRef({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      ref: `tags/${release.tag_name}`
+                    });
+                    console.log(`Successfully deleted tag ref "tags/${release.tag_name}"`);
+                  } catch (tagError) {
+                    console.log(`Could not delete tag (it may have been deleted already): ${tagError.message}`);
+                  }
+                  */
+
+                } catch (error) {
+                  console.error(`Failed to delete "${releaseName}": ${error.message}`);
+                }
+              } else {
+                console.log(`Skipping: "${releaseName}" (Created: ${release.created_at}) - It is recent.`);
+              }
+            }
