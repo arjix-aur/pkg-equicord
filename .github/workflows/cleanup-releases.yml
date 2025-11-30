@@ -22,7 +22,7 @@ jobs:
             const daysToKeep = 15;
             const msToKeep = daysToKeep * 24 * 60 * 60 * 1000;
             const now = new Date();
-            const thresholdDate = new Date(now.getTime() - msToKeep);
+            const thresholdDate = new Date(Date.now() - msToKeep);
 
             console.log(`Current Date: ${now.toISOString()}`);
             console.log(`Threshold Date: ${thresholdDate.toISOString()}`);
@@ -55,7 +55,6 @@ jobs:
 
                   // OPTIONAL: Delete the Tag associated with the release.
                   // Uncomment the block below if you also want to remove the git tag (version reference).
-                  /*
                   try {
                     await github.rest.git.deleteRef({
                       owner: context.repo.owner,
@@ -66,7 +65,6 @@ jobs:
                   } catch (tagError) {
                     console.log(`Could not delete tag (it may have been deleted already): ${tagError.message}`);
                   }
-                  */
 
                 } catch (error) {
                   console.error(`Failed to delete "${releaseName}": ${error.message}`);
